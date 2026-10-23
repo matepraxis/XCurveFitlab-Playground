@@ -19,10 +19,10 @@ test('cambia genotipo y ejecuta una generación real', async ({ page }) => {
   await page.getByRole('button', { name: 'Aplicar configuración' }).click();
   await page.locator('[title="Avanzar una generación"]').click();
   await expect(page.locator('.stat-card').first()).toContainText('1 /');
-  await page.getByRole('button', { name: 'Iniciar' }).click();
+  await page.getByRole('button', { name: 'Iniciar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
   await page.getByRole('button', { name: 'Pausar' }).click();
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeVisible();
 });
 
 test('acepta CSV con delimitador semicolon y selecciona columnas', async ({ page }) => {
