@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   model: 'polynomial', degree: 2, populationSize: 100, mutationRate: 0.08,
   crossoverRate: 0.75, generations: 500, seed: 42, elitism: 2, searchBound: 10
 };
-const INVALID_SCORE = 1e15;
+const INVALID_SCORE = Number.POSITIVE_INFINITY;
 
 export class SeededRandom {
   private state: number;
@@ -146,9 +146,11 @@ export function parseCsv(csv: string): { columns: string[]; rows: string[][] } {
 export function pointsFromCsv(columns: string[], rows: string[][], xColumn: string, yColumn: string): Point[] {
   const ix = columns.indexOf(xColumn), iy = columns.indexOf(yColumn);
   if (ix < 0 || iy < 0 || ix === iy) throw new Error('Selecciona dos columnas distintas.');
-  const points = rows.map(row => ({
-    x: Number(row[ix]?.replace(',', '.')), y: Number(row[iy]?.replace(',', '.'))
-  })).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+  const points = rows.map(row => {
+    const x = row[ix]?.trim(), y = row[iy]?.trim();
+    if (!x || !y) return null;
+    return { x: Number(x.replace(',', '.')), y: Number(y.replace(',', '.')) };
+  }).filter((p): p is Point => p !== null && Number.isFinite(p.x) && Number.isFinite(p.y));
   if (points.length < 5) throw new Error('Se necesitan al menos cinco pares numéricos válidos.');
   return points.sort((a, b) => a.x - b.x);
 }
