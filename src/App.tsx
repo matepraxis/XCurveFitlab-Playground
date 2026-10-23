@@ -390,6 +390,10 @@ function App() {
             <div className="gene-list">{geneNames(settings.model, settings.degree).map((g, i) => <span className="gene-chip" key={i}>{g}</span>)}</div>
             <small>{modelFormula(settings.model, settings.degree)}</small>
           </div>
+          <details className="learning-note">
+            <summary>¿Qué representa un cromosoma?</summary>
+            <p>Es una posible curva. Cada gen es un parámetro de la función escogida. La selección favorece individuos con menor MSE; el cruce combina genes y la mutación los modifica aleatoriamente.</p>
+          </details>
         </section>
         <section className="control-section">
           <div className="section-title"><Settings2 size={16} /><span>03 · Evolución</span></div>
@@ -449,6 +453,10 @@ function App() {
                 ? 'Punto ' + (selected.index + 1) + ': observado ' + formatValue(selected.y) + ', predicho ' + formatValue(selected.fitted) + ', residuo ' + formatValue(selected.residual)
                 : 'Selecciona un punto para ver su error (y − ŷ). Busca patrones, sesgos y dispersión desigual.'}</span>
             </div>
+            <details className="learning-note residual-help">
+              <summary>¿Cómo interpreto los residuos?</summary>
+              <p>Un residuo positivo significa que la observación está por encima de la curva. Uno negativo, por debajo. Si forman una curvatura o un embudo, puede existir un patrón que el modelo no explica. Un MSE pequeño no garantiza la ausencia de esos patrones.</p>
+            </details>
           </article>
           <article className="viz-card convergence-card">
             <div className="card-header"><div><div className="card-eyebrow">HISTORIA GENERACIONAL</div><h3>Convergencia del error</h3></div><span className="pill">MSE ↓</span></div>
