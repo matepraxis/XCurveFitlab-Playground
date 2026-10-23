@@ -4,7 +4,7 @@ services:
   - type: web
     name: xcurvefitlab-playground
     runtime: static
-    buildCommand: npm install --no-audit --no-fund && npm run build
+    buildCommand: npm ci --no-audit --no-fund && npm run build
     staticPublishPath: ./dist
     routes:
       - type: rewrite
