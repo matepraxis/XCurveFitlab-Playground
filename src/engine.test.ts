@@ -58,3 +58,43 @@ describe('importación CSV', () => {
     expect(pointsFromCsv(result.columns, result.rows, 'tiempo', 'valor')).toHaveLength(5);
   });
 });
+
+describe('protecciones antes del primer despliegue', () => {
+  it('mantiene coherencia exacta entre genes y aptitud después de operaciones genéticas', () => {
+    const points = generateData('quadratic', 0.2, 60, 18);
+    const settings = { ...DEFAULT_SETTINGS, mutationRate: 0.47, crossoverRate: 0.93, generations: 80 };
+    const engine = new Evolution(settings, points);
+    for (let i = 0; i < 80; i++) {
+      const snapshot = engine.step().generation;
+      const metrics = calculateMetrics(points, settings.model, snapshot.bestGenes, settings.degree);
+      expect(snapshot.bestEver).toBe(metrics.mse);
+    }
+  });
+  it('permite un R² negativo y no confunde un resultado inválido con MSE cero', () => {
+    const data = generateData('linear', 0, 60, 42);
+    const poor = calculateMetrics(data, 'linear', [0, 50], 1);
+    const invalid = calculateMetrics(data, 'logarithmic', [1, 1, 0, 0], 1);
+    expect(poor.r2).not.toBeNull();
+    expect(poor.r2!).toBeLessThan(0);
+    expect(invalid.valid).toBe(false);
+    expect(invalid.mse).toBeNull();
+  });
+  it('reconoce CSV con comillas, delimitadores dentro de comillas y coma decimal', () => {
+    const data = parseCsv('\uFEFF"x";"valor; medido";"observación"\r\n"1";"2,5";"punto; A"\r\n2;3,5;B\r\n3;5;C\r\n4;7;D\r\n5;11;E\r\n');
+    expect(data.columns).toEqual(['x', 'valor; medido', 'observación']);
+    expect(data.rows[0]).toEqual(['1', '2,5', 'punto; A']);
+    expect(pointsFromCsv(data.columns, data.rows, 'x', 'valor; medido')[0]).toEqual({ x: 1, y: 2.5 });
+  });
+  it('rechaza comillas sin cerrar, encabezados duplicados y CSV con demasiadas filas', () => {
+    expect(() => parseCsv('x,y\n"1,2')).toThrow(/Comillas sin cerrar/);
+    expect(() => parseCsv('x,x\n1,2')).toThrow(/duplicados/);
+    const rows = Array.from({length: 1001}, (_, i) => i + ',' + (i * 2));
+    expect(() => parseCsv('x,y\n' + rows.join('\n'))).toThrow(/máximo 1000/);
+  });
+  it('rechaza celdas vacías en lugar de convertirlas en ceros', () => {
+    const data = parseCsv('x;y\n;2\n0;0\n1;1\n2;2\n3;3\n4;4');
+    const points = pointsFromCsv(data.columns, data.rows, 'x', 'y');
+    expect(points).toHaveLength(5);
+    expect(points[0]).toEqual({ x: 0, y: 0 });
+  });
+});
