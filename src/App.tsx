@@ -447,39 +447,11 @@ function App() {
             <div className="chart-legend"><span><i className="legend-dot gold" /> Observaciones</span>{hasEvolved && <span><i className="legend-line blue" /> Mejor histórico</span>}<span><i className="legend-line violet" /> Población generacional</span></div>
             <p className="chart-footnote">Eje Y fijado a los datos: algunas soluciones iniciales pueden quedar fuera de escala.</p>
           </article>
-          <article className="viz-card residual-chart">
-            <div className="card-header"><div><div className="card-eyebrow">DIAGNÓSTICO ESTADÍSTICO</div><h3>Análisis de residuos</h3></div>
-              <div className="chart-switch"><button className={residualAxis === 'x' ? 'active' : ''} onClick={() => setResidualAxis('x')}>vs X</button><button className={residualAxis === 'fitted' ? 'active' : ''} onClick={() => setResidualAxis('fitted')}>vs ŷ</button></div>
-            </div>
-            <EChart option={residualOption} onPoint={setSelectedPoint} />
-            <div className="diagnostic-tip">
-              <ChartScatter size={17}/><span>{selected
-                ? 'Punto ' + (selected.index + 1) + ': observado ' + formatValue(selected.y) + ', predicho ' + formatValue(selected.fitted) + ', residuo ' + formatValue(selected.residual)
-                : !hasEvolved ? 'Los residuos aparecerán cuando avance la primera generación.' : 'Selecciona un punto para ver su error (y − ŷ). Busca patrones, sesgos y dispersión desigual.'}</span>
-            </div>
-            <details className="learning-note residual-help">
-              <summary>¿Cómo interpreto los residuos?</summary>
-              <p>Un residuo positivo significa que la observación está por encima de la curva. Uno negativo, por debajo. Si forman una curvatura o un embudo, puede existir un patrón que el modelo no explica. Un MSE pequeño no garantiza la ausencia de esos patrones.</p>
-            </details>
-          </article>
           <article className="viz-card convergence-card">
             <div className="card-header"><div><div className="card-eyebrow">EVOLUCIÓN Y CONTROL</div><h3>Evolución y control generacional</h3></div><span className="pill">MSE ↓</span></div>
             <EChart option={convergenceOption} className="compact" />
             <div className="chart-legend"><span><i className="legend-line blue" /> Mejor histórico</span><span><i className="legend-line violet" /> Promedio de individuos válidos</span></div>
-          </article>
-          <article className="viz-card genotype-card">
-            <div className="card-header"><div><div className="card-eyebrow">INDIVIDUO DESTACADO</div><h3>{hasEvolved ? 'Mejor genotipo' : 'Genotipo por descubrir'}</h3></div><Dna size={19} className="dim-icon"/></div>
-            <p className="equation-name">{modelFormula(active.model, active.degree)}</p>
-            <div className="gene-values">{geneNames(active.model, active.degree).map((g, i) => <div key={g}><span>{g}</span><strong>{formatValue(bestGenes[i], 4)}</strong></div>)}</div>
-            <div className="metrics-strip">
-              <div><span>RMSE</span><strong>{formatValue(metrics?.rmse)}</strong></div>
-              <div><span>MAE</span><strong>{formatValue(metrics?.mae)}</strong></div>
-              <div><span>Válidos</span><strong>{display?.validCount ?? '—'}/{active.populationSize}</strong></div>
-            </div>
-          </article>
-        </div>
-
-        <div className="playback-panel">
+          <div className="evolution-controls">
           <div className="playback-top"><div><span className="card-eyebrow">EXPERIMENTO GUIADO</span><p className="stage-caption">{stageMessage}</p></div>
             <div className="play-controls">
               <button className="control-button subtle" title="Reiniciar" onClick={() => apply()}><RotateCcw size={18}/></button>
@@ -497,6 +469,34 @@ function App() {
             if (running) worker.current?.postMessage({ type: 'start', speed: newSpeed });
           }} /><strong>{speed}×</strong></div>
         </div>
+          </article>
+          <article className="viz-card residual-chart">
+            <div className="card-header"><div><div className="card-eyebrow">DIAGNÓSTICO ESTADÍSTICO</div><h3>Análisis de residuos</h3></div>
+              <div className="chart-switch"><button className={residualAxis === 'x' ? 'active' : ''} onClick={() => setResidualAxis('x')}>vs X</button><button className={residualAxis === 'fitted' ? 'active' : ''} onClick={() => setResidualAxis('fitted')}>vs ŷ</button></div>
+            </div>
+            <EChart option={residualOption} onPoint={setSelectedPoint} />
+            <div className="diagnostic-tip">
+              <ChartScatter size={17}/><span>{selected
+                ? 'Punto ' + (selected.index + 1) + ': observado ' + formatValue(selected.y) + ', predicho ' + formatValue(selected.fitted) + ', residuo ' + formatValue(selected.residual)
+                : !hasEvolved ? 'Los residuos aparecerán cuando avance la primera generación.' : 'Selecciona un punto para ver su error (y − ŷ). Busca patrones, sesgos y dispersión desigual.'}</span>
+            </div>
+            <details className="learning-note residual-help">
+              <summary>¿Cómo interpreto los residuos?</summary>
+              <p>Un residuo positivo significa que la observación está por encima de la curva. Uno negativo, por debajo. Si forman una curvatura o un embudo, puede existir un patrón que el modelo no explica. Un MSE pequeño no garantiza la ausencia de esos patrones.</p>
+            </details>
+          </article>
+          <article className="viz-card genotype-card">
+            <div className="card-header"><div><div className="card-eyebrow">INDIVIDUO DESTACADO</div><h3>{hasEvolved ? 'Mejor genotipo' : 'Genotipo por descubrir'}</h3></div><Dna size={19} className="dim-icon"/></div>
+            <p className="equation-name">{modelFormula(active.model, active.degree)}</p>
+            <div className="gene-values">{geneNames(active.model, active.degree).map((g, i) => <div key={g}><span>{g}</span><strong>{formatValue(bestGenes[i], 4)}</strong></div>)}</div>
+            <div className="metrics-strip">
+              <div><span>RMSE</span><strong>{formatValue(metrics?.rmse)}</strong></div>
+              <div><span>MAE</span><strong>{formatValue(metrics?.mae)}</strong></div>
+              <div><span>Válidos</span><strong>{display?.validCount ?? '—'}/{active.populationSize}</strong></div>
+            </div>
+          </article>
+        </div>
+
         <div className="export-actions">
           <span>Descarga los resultados para analizar o documentar el experimento:</span>
           <div><button disabled={!metrics?.valid} onClick={exportResiduals}><Download size={15}/> Exportar residuos CSV</button>
