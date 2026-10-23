@@ -92,3 +92,17 @@ Este repositorio incluye el workflow manual `.github/workflows/pages.yml` para p
 Dirección prevista después de una publicación exitosa: https://matepraxis.github.io/XCurveFitlab-Playground/
 
 El workflow solo se ejecuta manualmente y usa el parámetro de Vite `--base=/XCurveFitlab-Playground/` para que JavaScript, estilos y Web Workers se carguen correctamente en la subruta. No despliega a Render, no modifica el archivo `render.yaml` y no activa un despliegue automático en cada commit.
+
+
+## Experiencia didáctica: evolución genuina paso a paso
+
+**Aplicar configuración no optimiza ni muestra una curva ganadora.** Inicializa una población aleatoria (generación 0), con muestras de cromosomas candidatos y sus distintas curvas, y deja el simulador en pausa.
+
+La **gráfica de convergencia y los controles evolutivos están integrados en un único panel**. El estudiante puede:
+- Pulsar **Paso** para ejecutar exactamente una generación (selección, cruce, mutación, evaluación).
+- Pulsar **Iniciar** para observar generaciones a velocidad didáctica (1× por defecto, unos 900 ms por generación).
+- Pausar, reiniciar o explorar una generación anterior mediante el deslizador.
+- Ver cómo una curva destacada surge después de iniciar el proceso evolutivo, sin confundir la evaluación inicial de cromosomas con generaciones evolucionadas.
+- Consultar los residuos y métricas de la solución histórica únicamente después de la primera generación.
+
+Las curvas dibujadas son individuos reales, no trayectorias prediseñadas. El MSE medio puede subir o bajar; el mejor histórico se conserva. En la línea temporal no se dibujan generaciones posteriores a la seleccionada.
