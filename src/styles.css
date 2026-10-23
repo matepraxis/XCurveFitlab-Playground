@@ -194,3 +194,5 @@ input[type=range] { accent-color: #57bfff; cursor: pointer; width: 100%; margin:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.chart-footnote { text-align: center; color: var(--muted); font-size: 10px; margin: 7px 0 1px; line-height: 1.45; }
