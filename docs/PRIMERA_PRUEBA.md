@@ -3,7 +3,7 @@
 ## Preparación
 - [ ] GitHub Actions marca las pruebas matemáticas, build y navegador como exitosas.
 - [ ] Conectar repo matepraxis/XCurveFitlab-Playground a Render como sitio estático, sin backend.
-- [ ] Comando de compilación: npm install --no-audit --no-fund && npm run build.
+- [ ] Comando de compilación: npm ci --no-audit --no-fund && npm run build.
 - [ ] Directorio público: dist. Node 22.
 - [ ] Verificar que el frontend abra y que Web Workers cargue en el sitio público.
 
