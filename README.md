@@ -21,7 +21,7 @@ Proyecto independiente de [XCurveFitLab de escritorio](https://github.com/matepr
 
 Requisitos: Node.js 20.19+ o Node.js 22.
 
-    npm install
+    npm ci
     npm run dev
 
 Pruebas y compilación:
@@ -55,3 +55,24 @@ Código relevante:
 Este primer prototipo debe superar las pruebas y una validación en navegador antes de publicarse en Render. En las siguientes fases incorporaremos importación CSV robusta (comillas y separadores regionales), diagramas de linajes de los individuos, mejores diagnósticos residuales, exportación, comparación de corridas y evaluación de rendimiento con poblaciones grandes.
 
 Este proyecto es una herramienta didáctica y experimental. No sustituye una validación formal de supuestos estadísticos.
+
+
+## Preparación para Render
+
+El repositorio incluye render.yaml, .node-version (Node 22) y package-lock.json.
+Para la primera publicación, conectar este repositorio como **Static Site** / Blueprint:
+- buildCommand: npm ci --no-audit --no-fund && npm run build
+- staticPublishPath: dist
+- rama: main
+- no requiere backend, variables secretas, puertos ni comando start.
+
+La publicación **no se realiza automáticamente por agregar** render.yaml.
+La revisión en GitHub debe aprobar pruebas unitarias, compilación y pruebas Playwright en Chromium de escritorio y móvil.
+Ejecutar localmente npm run test:e2e tras instalar navegadores con npx playwright install chromium.
+
+## Evidencias y análisis
+
+Los controles «Exportar residuos CSV» y «Exportar experimento JSON» descargan observaciones,
+predicciones y errores, junto con parámetros genéticos, semilla e historial poblacional.
+Una ronda con la misma semilla y configuración es reproducible. La simulación ocurre en el navegador.
+Para la prueba inicial seguir docs/PRIMERA_PRUEBA.md.
