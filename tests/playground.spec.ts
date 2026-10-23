@@ -59,3 +59,14 @@ test('tema claro y oscuro y paneles visibles en móvil', async ({ page, isMobile
     expect(size.body).toBeLessThanOrEqual(size.viewport + 2);
   }
 });
+
+test('exporta residuos e historial sin servidor externo', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Exportar residuos CSV' })).toBeEnabled();
+  const residualDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar residuos CSV' }).click();
+  expect((await residualDownload).suggestedFilename()).toContain('xcurve-residuos-generacion-0.csv');
+  const experimentDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar experimento JSON' }).click();
+  expect((await experimentDownload).suggestedFilename()).toBe('xcurve-experimento.json');
+});
