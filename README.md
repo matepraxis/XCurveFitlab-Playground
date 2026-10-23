@@ -76,3 +76,19 @@ Los controles «Exportar residuos CSV» y «Exportar experimento JSON» descarga
 predicciones y errores, junto con parámetros genéticos, semilla e historial poblacional.
 Una ronda con la misma semilla y configuración es reproducible. La simulación ocurre en el navegador.
 Para la prueba inicial seguir docs/PRIMERA_PRUEBA.md.
+
+
+## Vista previa desde GitHub Pages (sin Render)
+
+Este repositorio incluye el workflow manual `.github/workflows/pages.yml` para publicar una vista de prueba de XCurveFitLab Playground.
+
+**Activación inicial (una sola vez):**
+
+1. Abrir Settings → Pages en este repositorio.
+2. En Build and deployment → Source, elegir **GitHub Actions**.
+3. Ir a Actions → **Preview on GitHub Pages** → Run workflow (rama main).
+4. Comprobar que el workflow termine correctamente y abrir la URL de Pages desde la ejecución o Settings → Pages.
+
+Dirección prevista después de una publicación exitosa: https://matepraxis.github.io/XCurveFitlab-Playground/
+
+El workflow solo se ejecuta manualmente y usa el parámetro de Vite `--base=/XCurveFitlab-Playground/` para que JavaScript, estilos y Web Workers se carguen correctamente en la subruta. No despliega a Render, no modifica el archivo `render.yaml` y no activa un despliegue automático en cada commit.
