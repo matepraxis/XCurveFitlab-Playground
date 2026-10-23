@@ -207,6 +207,9 @@ function App() {
   const plotOption = useMemo<echarts.EChartsOption>(() => {
     const xs = points.map(p => p.x);
     const xmin = Math.min(...xs), xmax = Math.max(...xs);
+    const ys = points.map(p => p.y);
+    const ymin = Math.min(...ys), ymax = Math.max(...ys);
+    const ypad = Math.max(0.6, (ymax - ymin) * 0.25);
     const xGrid = Array.from({ length: 130 }, (_, i) => xmin + (xmax - xmin) * i / 129);
     const plot = (genes: number[]) => xGrid.map(x => {
       const y = predict(active.model, genes, x, active.degree);
@@ -238,7 +241,7 @@ function App() {
     });
     return {
       ...basicChart(dark), xAxis: { type: 'value', name: 'X', nameLocation: 'end', ...axisStyle(dark) },
-      yAxis: { type: 'value', name: 'Y', scale: true, ...axisStyle(dark) }, series
+      yAxis: { type: 'value', name: 'Y', min: ymin - ypad, max: ymax + ypad, ...axisStyle(dark) }, series
     };
   }, [points, active, display, selectedPoint, residuals, dark]);
 
@@ -398,6 +401,7 @@ function App() {
             <div className="card-header"><div><div className="card-eyebrow">ESPACIO DE SOLUCIONES</div><h3>Ajuste y población</h3></div><span className="pill">Gen. {viewing}</span></div>
             <EChart option={plotOption} onPoint={setSelectedPoint} />
             <div className="chart-legend"><span><i className="legend-dot gold" /> Observaciones</span><span><i className="legend-line blue" /> Mejor histórico</span><span><i className="legend-line violet" /> Otras soluciones</span></div>
+            <p className="chart-footnote">Eje Y fijado a los datos: algunas soluciones iniciales pueden quedar fuera de escala.</p>
           </article>
           <article className="viz-card residual-chart">
             <div className="card-header"><div><div className="card-eyebrow">DIAGNÓSTICO ESTADÍSTICO</div><h3>Análisis de residuos</h3></div>
