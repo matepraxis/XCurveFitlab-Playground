@@ -52,7 +52,7 @@ Código relevante:
 
 ## Alcance y siguientes etapas
 
-Este primer prototipo debe superar las pruebas y una validación en navegador antes de publicarse en Render. En las siguientes fases incorporaremos importación CSV robusta (comillas y separadores regionales), diagramas de linajes de los individuos, mejores diagnósticos residuales, exportación, comparación de corridas y evaluación de rendimiento con poblaciones grandes.
+Este primer prototipo debe superar las pruebas y una validación en navegador antes de publicarse en Render. La importación CSV ya maneja comillas y separadores regionales habituales; exportación de residuos e historial también está disponible. En siguientes fases incorporaremos diagramas de linajes, mejores diagnósticos residuales, comparación de corridas y evaluación de rendimiento con poblaciones grandes.
 
 Este proyecto es una herramienta didáctica y experimental. No sustituye una validación formal de supuestos estadísticos.
 
