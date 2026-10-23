@@ -176,6 +176,7 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
+      if (file.size > 2_000_000) throw new Error('El CSV supera el límite de 2 MB.');
       const parsed = parseCsv(await file.text());
       setCsv({ ...parsed, name: file.name });
       setXColumn(parsed.columns[0]); setYColumn(parsed.columns[1]);
@@ -277,6 +278,41 @@ function App() {
       ]
     };
   }, [residuals, residualAxis, dark]);
+
+  const download = (name: string, mime: string, content: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const exportResiduals = () => {
+    const lines = ['x,y_observado,y_predicho,residuo,residuo_cuadrado'];
+    for (const r of residuals) {
+      lines.push([r.x, r.y, r.fitted, r.residual, r.residual * r.residual]
+        .map(v => Number.isFinite(v) ? String(v) : '').join(','));
+    }
+    download('xcurve-residuos-generacion-' + (display?.generation ?? 0) + '.csv',
+      'text/csv;charset=utf-8', '\uFEFF' + lines.join('\r\n'));
+  };
+  const exportExperiment = () => {
+    const result = {
+      software: 'XCurveFitLab Playground',
+      version: '0.1.0',
+      settings: active,
+      dataset: points,
+      history,
+      viewedGeneration: display?.generation ?? 0,
+      bestGenes,
+      metrics,
+      residuals
+    };
+    download('xcurve-experimento.json', 'application/json;charset=utf-8', JSON.stringify(result, null, 2));
+  };
 
   const total = active.generations;
   const latestGeneration = frame?.generation.generation ?? 0;
@@ -448,6 +484,11 @@ function App() {
             const newSpeed = Number(e.target.value); setSpeed(newSpeed);
             if (running) worker.current?.postMessage({ type: 'start', speed: newSpeed });
           }} /><strong>{speed}×</strong></div>
+        </div>
+        <div className="export-actions">
+          <span>Descarga los resultados para analizar o documentar el experimento:</span>
+          <div><button disabled={!metrics?.valid} onClick={exportResiduals}><Download size={15}/> Exportar residuos CSV</button>
+          <button disabled={!frame} onClick={exportExperiment}><Download size={15}/> Exportar experimento JSON</button></div>
         </div>
         <div className="footer-note"><FlaskConical size={16}/><span>Un MSE menor no prueba por sí solo que el modelo sea adecuado. Interpreta el patrón de los residuos y compara familias de funciones.</span>
           <a href="https://github.com/matepraxis/Xcurvefitlab" target="_blank" rel="noreferrer">Proyecto de origen <Download size={13}/></a>
