@@ -196,3 +196,23 @@ input[type=range] { accent-color: #57bfff; cursor: pointer; width: 100%; margin:
 }
 
 .chart-footnote { text-align: center; color: var(--muted); font-size: 10px; margin: 7px 0 1px; line-height: 1.45; }
+
+.export-actions {
+  margin-top: 16px; padding: 15px 18px; border: 1px solid var(--border-soft);
+  background: var(--surface); border-radius: 12px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.export-actions > span { color: var(--soft-text); font-size: 11px; }
+.export-actions > div { display: flex; flex-wrap: wrap; gap: 9px; }
+.export-actions button {
+  background: var(--surface-soft); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px; display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700;
+}
+.export-actions button:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+
+.learning-note { border: 1px solid var(--border); background: var(--surface-raised); border-radius: 9px; padding: 10px 12px; color: var(--soft-text); }
+.learning-note summary { cursor: pointer; font-size: 11px; font-weight: 800; color: var(--blue); }
+.learning-note summary:focus-visible { outline: 2px solid var(--blue); border-radius: 3px; }
+.learning-note p { font-size: 11px; line-height: 1.6; color: var(--soft-text); margin: 9px 0 1px; }
+.learning-note.residual-help { margin-top: 10px; }
