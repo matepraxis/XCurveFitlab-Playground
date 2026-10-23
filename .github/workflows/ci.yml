@@ -19,6 +19,12 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Record dependency lock snapshot
+        run: |
+          echo 'BEGIN_RESOLVED_LOCKFILE'
+          base64 -w0 package-lock.json
+          echo
+          echo 'END_RESOLVED_LOCKFILE'
       - name: Check mathematics
         run: npm test
       - name: Build
