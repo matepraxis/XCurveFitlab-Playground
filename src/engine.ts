@@ -134,23 +134,68 @@ export function generateData(shape: DataShape, noise: number, count: number, see
   return samples;
 }
 
+/** RFC 4180-style quoted cells, semicolon/comma delimiters, BOM and CRLF. */
 export function parseCsv(csv: string): { columns: string[]; rows: string[][] } {
-  const lines = csv.replace(/^\uFEFF/, '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  if (lines.length < 2) throw new Error('El CSV debe contener encabezados y al menos una observación.');
-  const delimiter = lines[0].includes(';') ? ';' : ',';
-  const rows = lines.map(line => line.split(delimiter).map(cell => cell.trim().replace(/^"(.*)"$/, '$1')));
-  const columns = rows[0];
-  if (columns.length < 2) throw new Error('El CSV requiere al menos dos columnas.');
-  return { columns, rows: rows.slice(1).filter(row => row.length === columns.length) };
+  if (csv.length > 2_000_000) throw new Error('Archivo demasiado grande (límite: 2 MB).');
+  const text = csv.replace(/^\uFEFF/, '');
+  if (!text.trim()) throw new Error('El archivo CSV está vacío.');
+  let commas = 0, semicolons = 0, inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i + 1] === '"') i++;
+      else inQuotes = !inQuotes;
+    } else if (!inQuotes && (ch === '\n' || ch === '\r')) break;
+    else if (!inQuotes && ch === ',') commas++;
+    else if (!inQuotes && ch === ';') semicolons++;
+  }
+  const delimiter = semicolons > commas ? ';' : ',';
+  const records: string[][] = [];
+  let record: string[] = [], value = '';
+  inQuotes = false;
+  const finishRecord = () => {
+    record.push(value.trim()); value = '';
+    if (record.some(cell => cell !== '')) records.push(record);
+    record = [];
+  };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i + 1] === '"') { value += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (!inQuotes && ch === delimiter) {
+      record.push(value.trim()); value = '';
+    } else if (!inQuotes && (ch === '\r' || ch === '\n')) {
+      finishRecord();
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+    } else value += ch;
+  }
+  if (inQuotes) throw new Error('Comillas sin cerrar en el archivo CSV.');
+  finishRecord();
+  if (records.length < 2) throw new Error('El CSV requiere encabezados y observaciones.');
+  const [columns, ...rows] = records;
+  if (columns.length < 2 || columns.some(c => !c)) throw new Error('El CSV requiere al menos dos encabezados no vacíos.');
+  if (new Set(columns).size !== columns.length) throw new Error('El CSV tiene nombres de columnas duplicados.');
+  if (rows.some(row => row.length !== columns.length))
+    throw new Error('El CSV tiene filas con un número de columnas diferente al encabezado.');
+  if (rows.length > 1000) throw new Error('Para garantizar fluidez, carga máximo 1000 observaciones por experimento.');
+  return { columns, rows };
 }
+
 export function pointsFromCsv(columns: string[], rows: string[][], xColumn: string, yColumn: string): Point[] {
   const ix = columns.indexOf(xColumn), iy = columns.indexOf(yColumn);
-  if (ix < 0 || iy < 0 || ix === iy) throw new Error('Selecciona dos columnas distintas.');
-  const points = rows.map(row => {
-    const x = row[ix]?.trim(), y = row[iy]?.trim();
-    if (!x || !y) return null;
-    return { x: Number(x.replace(',', '.')), y: Number(y.replace(',', '.')) };
-  }).filter((p): p is Point => p !== null && Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (ix < 0 || iy < 0 || ix === iy) throw new Error('Selecciona dos columnas distintas para X y Y.');
+  const parseNumeric = (input: string | undefined): number | null => {
+    const s = input?.trim() ?? '';
+    if (!/^[+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:e[+-]?\d+)?$/i.test(s)) return null;
+    const n = Number(s.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  };
+  const points: Point[] = [];
+  for (const row of rows) {
+    const x = parseNumeric(row[ix]), y = parseNumeric(row[iy]);
+    if (x !== null && y !== null) points.push({ x, y });
+  }
   if (points.length < 5) throw new Error('Se necesitan al menos cinco pares numéricos válidos.');
   return points.sort((a, b) => a.x - b.x);
 }
