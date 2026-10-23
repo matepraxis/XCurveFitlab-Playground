@@ -9,7 +9,7 @@ type Request =
 
 let evolution: Evolution | null = null;
 let playing = false;
-let speed = 5;
+let speed = 1;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let session = 0;
 
@@ -34,7 +34,7 @@ function tick(ownSession: number): void {
   evolution.step();
   sendFrame();
   if (playing && ownSession === session) {
-    timer = setTimeout(() => tick(ownSession), Math.max(18, 400 / speed));
+    timer = setTimeout(() => tick(ownSession), Math.max(70, 900 / speed));
   }
 }
 self.onmessage = (event: MessageEvent<Request>) => {
@@ -55,7 +55,7 @@ self.onmessage = (event: MessageEvent<Request>) => {
       sendFrame();
       self.postMessage({ type: 'running', running: false });
     } else if (msg.type === 'start' && evolution) {
-      speed = Number.isFinite(msg.speed) ? Math.max(1, Math.min(30, msg.speed)) : 5;
+      speed = Number.isFinite(msg.speed) ? Math.max(1, Math.min(10, msg.speed)) : 1;
       if (!playing && !evolution.frame().finished) {
         playing = true;
         const ownSession = ++session;
