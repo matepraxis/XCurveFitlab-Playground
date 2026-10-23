@@ -257,8 +257,15 @@ export class Evolution {
       ordered.reduce((sum, i) => sum + i.genes[j], 0) / ordered.length);
     const diversity = Math.sqrt(ordered.reduce((sum, i) =>
       sum + i.genes.reduce((acc, gene, j) => acc + (gene - centers[j]) ** 2, 0) / genesCount, 0) / ordered.length);
-    const sampled = Array.from({ length: Math.min(12, ordered.length) }, (_, j) =>
-      ordered[Math.floor(j * (ordered.length - 1) / Math.max(1, Math.min(12, ordered.length) - 1))].genes.slice());
+    // Visualizar curvas reales: algunas candidatas relativamente aptas y otras de todo el espacio poblacional.
+    // En la generación 0 ninguna de ellas se identifica aún como ganadora.
+    const sampleCount = Math.min(20, ordered.length);
+    const sampleIndices = new Set([
+      ...Array.from({ length: Math.min(8, sampleCount) }, (_, j) => j),
+      ...Array.from({ length: sampleCount }, (_, j) =>
+        Math.floor(j * (ordered.length - 1) / Math.max(1, sampleCount - 1)))
+    ]);
+    const sampled = Array.from(sampleIndices, j => ordered[j].genes.slice());
     this.history.push({
       generation: this.generationNumber,
       currentBest: current.valid ? current.score : null,

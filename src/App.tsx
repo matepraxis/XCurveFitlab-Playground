@@ -114,7 +114,7 @@ function App() {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [history, setHistory] = useState<Generation[]>([]);
   const [running, setRunning] = useState(false);
-  const [speed, setSpeed] = useState(5);
+  const [speed, setSpeed] = useState(1);
   const [pastGeneration, setPastGeneration] = useState<number | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
   const [residualAxis, setResidualAxis] = useState<'x' | 'fitted'>('x');
@@ -146,7 +146,7 @@ function App() {
     setSettings(previous => ({ ...previous, [key]: value }));
     setDirty(true);
   };
-  const apply = (start = false, singleStep = false) => {
+  const apply = () => {
     try {
       const data = source === 'csv'
         ? pointsFromCsv(csv?.columns ?? [], csv?.rows ?? [], xColumn, yColumn)
@@ -155,22 +155,20 @@ function App() {
       setFrame(null); setHistory([]); setSelectedPoint(null); setPastGeneration(null);
       setDirty(false); setRunning(false);
       worker.current?.postMessage({ type: 'reset', settings, points: data });
-      if (singleStep) worker.current?.postMessage({ type: 'step' });
-      if (start) worker.current?.postMessage({ type: 'start', speed });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No fue posible preparar los datos.');
     }
   };
   const play = () => {
     setPastGeneration(null);
-    if (dirty) apply(true);
-    else worker.current?.postMessage({ type: 'start', speed });
+    if (dirty) { setError('Primero aplica la configuración para ver la población inicial.'); return; }
+    worker.current?.postMessage({ type: 'start', speed });
   };
   const pause = () => worker.current?.postMessage({ type: 'pause' });
   const step = () => {
     setPastGeneration(null);
-    if (dirty) apply(false, true);
-    else worker.current?.postMessage({ type: 'step' });
+    if (dirty) { setError('Primero aplica la configuración para ver la población inicial.'); return; }
+    worker.current?.postMessage({ type: 'step' });
   };
   const openFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -188,7 +186,9 @@ function App() {
 
   const display = pastGeneration === null
     ? frame?.generation : history.find(g => g.generation === pastGeneration) ?? frame?.generation;
-  const bestGenes = display?.bestGenes ?? [];
+  // En generación cero aún no hay reproducción: solo se muestran cromosomas iniciales.
+  const hasEvolved = (display?.generation ?? 0) > 0;
+  const bestGenes = hasEvolved ? (display?.bestGenes ?? []) : [];
   const metrics = useMemo(
     () => bestGenes.length ? calculateMetrics(points, active.model, bestGenes, active.degree) : null,
     [points, active, display]
@@ -252,12 +252,12 @@ function App() {
     xAxis: { type: 'value', name: 'Generación', min: 0, ...axisStyle(dark) },
     yAxis: { type: 'value', name: 'MSE', min: 0, scale: true, ...axisStyle(dark) },
     series: [
-      { type: 'line', name: 'Mejor histórico', data: history.map(h => [h.generation, h.bestEver]),
+      { type: 'line', name: 'Mejor histórico', data: history.filter(h => h.generation > 0 && h.generation <= (display?.generation ?? 0)).map(h => [h.generation, h.bestEver]),
         showSymbol: false, lineStyle: { color: palette.line, width: 2.5 }, areaStyle: { color: palette.line, opacity: 0.06 } },
-      { type: 'line', name: 'Promedio válido', data: history.map(h => [h.generation, h.meanScore]),
+      { type: 'line', name: 'Promedio válido', data: history.filter(h => h.generation > 0 && h.generation <= (display?.generation ?? 0)).map(h => [h.generation, h.meanScore]),
         showSymbol: false, lineStyle: { color: palette.population, width: 1.5, type: 'dashed' } }
     ]
-  }), [history, dark]);
+  }), [history, dark, display]);
 
   const residualOption = useMemo<echarts.EChartsOption>(() => {
     const valid = residuals.filter(r => Number.isFinite(r.residual) && Number.isFinite(r.fitted));
@@ -319,6 +319,9 @@ function App() {
   const viewing = display?.generation ?? latestGeneration;
   const selected = selectedPoint !== null ? residuals[selectedPoint] : null;
   const isFinished = frame?.finished ?? false;
+  const stageMessage = !hasEvolved
+    ? 'Generación 0: observa los cromosomas iniciales. Todavía no hay evolución; pulsa «Paso» o «Iniciar».'
+    : 'Generación ' + viewing + ': observa cómo cambian las curvas tras la selección, el cruce y la mutación.';
 
   return <div className={'app-shell ' + (dark ? 'theme-dark' : 'theme-light')}>
     <header className="topbar">
@@ -423,7 +426,7 @@ function App() {
             <p>Configura el genotipo, experimenta con los operadores y descubre qué revelan los residuos.</p>
           </div>
           <div className="experiment-state"><span className={'live-dot ' + (running ? 'animating' : '')} />
-            {running ? 'Evolucionando' : isFinished ? 'Completado' : 'En pausa'}</div>
+            {running ? 'Evolucionando' : isFinished ? 'Completado' : !hasEvolved ? 'Población inicial' : 'En pausa'}</div>
         </div>
 
         {error && <div className="error-banner" role="alert">{error}</div>}
@@ -431,52 +434,25 @@ function App() {
 
         <div className="stats-row">
           <div className="stat-card"><div className="stat-label">GENERACIÓN</div><div className="stat-value">{viewing}<span className="stat-suffix"> / {total}</span></div><div className="stat-caption">Progreso evolutivo</div></div>
-          <div className="stat-card"><div className="stat-label">MEJOR MSE</div><div className="stat-value accent-blue">{formatValue(display?.bestEver)}</div><div className="stat-caption">Mejor histórico</div></div>
-          <div className="stat-card"><div className="stat-label">R²</div><div className="stat-value accent-violet">{formatValue(metrics?.r2, 4)}</div><div className="stat-caption">Puede ser negativo</div></div>
+          <div className="stat-card"><div className="stat-label">MEJOR MSE</div><div className="stat-value accent-blue">{formatValue(hasEvolved ? display?.bestEver : null)}</div><div className="stat-caption">{hasEvolved ? 'Mejor histórico' : 'Aún sin evolución'}</div></div>
+          <div className="stat-card"><div className="stat-label">R²</div><div className="stat-value accent-violet">{formatValue(metrics?.r2, 4)}</div><div className="stat-caption">{hasEvolved ? 'Puede ser negativo' : 'Se mostrará tras evolucionar'}</div></div>
           <div className="stat-card"><div className="stat-label">DIVERSIDAD</div><div className="stat-value">{formatValue(display?.diversity)}</div><div className="stat-caption">Dispersión genética</div></div>
         </div>
 
         <div className="viz-grid">
           <article className="viz-card primary-chart">
-            <div className="card-header"><div><div className="card-eyebrow">ESPACIO DE SOLUCIONES</div><h3>Ajuste y población</h3></div><span className="pill">Gen. {viewing}</span></div>
+            <div className="card-header"><div><div className="card-eyebrow">ESPACIO DE SOLUCIONES</div><h3>Ajuste y población</h3></div><span className="pill">{hasEvolved ? 'Gen. ' + viewing : 'Población inicial'}</span></div>
+            {!hasEvolved && <div className="initial-guide" role="status"><Dna size={17}/><span>Curvas candidatas aleatorias, <strong>no un ajuste final</strong>. Observa su diversidad antes de evolucionar.</span></div>}
             <EChart option={plotOption} onPoint={setSelectedPoint} />
-            <div className="chart-legend"><span><i className="legend-dot gold" /> Observaciones</span><span><i className="legend-line blue" /> Mejor histórico</span><span><i className="legend-line violet" /> Otras soluciones</span></div>
+            <div className="chart-legend"><span><i className="legend-dot gold" /> Observaciones</span>{hasEvolved && <span><i className="legend-line blue" /> Mejor histórico</span>}<span><i className="legend-line violet" /> Población generacional</span></div>
             <p className="chart-footnote">Eje Y fijado a los datos: algunas soluciones iniciales pueden quedar fuera de escala.</p>
           </article>
-          <article className="viz-card residual-chart">
-            <div className="card-header"><div><div className="card-eyebrow">DIAGNÓSTICO ESTADÍSTICO</div><h3>Análisis de residuos</h3></div>
-              <div className="chart-switch"><button className={residualAxis === 'x' ? 'active' : ''} onClick={() => setResidualAxis('x')}>vs X</button><button className={residualAxis === 'fitted' ? 'active' : ''} onClick={() => setResidualAxis('fitted')}>vs ŷ</button></div>
-            </div>
-            <EChart option={residualOption} onPoint={setSelectedPoint} />
-            <div className="diagnostic-tip">
-              <ChartScatter size={17}/><span>{selected
-                ? 'Punto ' + (selected.index + 1) + ': observado ' + formatValue(selected.y) + ', predicho ' + formatValue(selected.fitted) + ', residuo ' + formatValue(selected.residual)
-                : 'Selecciona un punto para ver su error (y − ŷ). Busca patrones, sesgos y dispersión desigual.'}</span>
-            </div>
-            <details className="learning-note residual-help">
-              <summary>¿Cómo interpreto los residuos?</summary>
-              <p>Un residuo positivo significa que la observación está por encima de la curva. Uno negativo, por debajo. Si forman una curvatura o un embudo, puede existir un patrón que el modelo no explica. Un MSE pequeño no garantiza la ausencia de esos patrones.</p>
-            </details>
-          </article>
           <article className="viz-card convergence-card">
-            <div className="card-header"><div><div className="card-eyebrow">HISTORIA GENERACIONAL</div><h3>Convergencia del error</h3></div><span className="pill">MSE ↓</span></div>
+            <div className="card-header"><div><div className="card-eyebrow">EVOLUCIÓN Y CONTROL</div><h3>Evolución y control generacional</h3></div><span className="pill">MSE ↓</span></div>
             <EChart option={convergenceOption} className="compact" />
             <div className="chart-legend"><span><i className="legend-line blue" /> Mejor histórico</span><span><i className="legend-line violet" /> Promedio de individuos válidos</span></div>
-          </article>
-          <article className="viz-card genotype-card">
-            <div className="card-header"><div><div className="card-eyebrow">INDIVIDUO DESTACADO</div><h3>Su genotipo</h3></div><Dna size={19} className="dim-icon"/></div>
-            <p className="equation-name">{modelFormula(active.model, active.degree)}</p>
-            <div className="gene-values">{geneNames(active.model, active.degree).map((g, i) => <div key={g}><span>{g}</span><strong>{formatValue(bestGenes[i], 4)}</strong></div>)}</div>
-            <div className="metrics-strip">
-              <div><span>RMSE</span><strong>{formatValue(metrics?.rmse)}</strong></div>
-              <div><span>MAE</span><strong>{formatValue(metrics?.mae)}</strong></div>
-              <div><span>Válidos</span><strong>{display?.validCount ?? '—'}/{active.populationSize}</strong></div>
-            </div>
-          </article>
-        </div>
-
-        <div className="playback-panel">
-          <div className="playback-top"><div><span className="card-eyebrow">CONTROL EVOLUTIVO</span><h3>Explora las generaciones</h3></div>
+          <div className="evolution-controls">
+          <div className="playback-top"><div><span className="card-eyebrow">EXPERIMENTO GUIADO</span><p className="stage-caption">{stageMessage}</p></div>
             <div className="play-controls">
               <button className="control-button subtle" title="Reiniciar" onClick={() => apply()}><RotateCcw size={18}/></button>
               {running ? <button className="control-button play-control" onClick={pause}><Pause size={18} fill="currentColor"/> Pausar</button> :
@@ -488,11 +464,39 @@ function App() {
             value={viewing} onChange={e => { pause(); setPastGeneration(Number(e.target.value)); }}
             aria-label="Consultar una generación anterior" />
           <div className="timeline-footer"><span>Gen. 0</span><span className="timeline-caption">Arrastra para revisar las generaciones anteriores</span><span>Gen. {latestGeneration}</span></div>
-          <div className="speed-control"><span>Velocidad</span><input type="range" min={1} max={30} value={speed} onChange={e => {
+          <div className="speed-control"><span>Velocidad</span><input type="range" min={1} max={10} value={speed} onChange={e => {
             const newSpeed = Number(e.target.value); setSpeed(newSpeed);
             if (running) worker.current?.postMessage({ type: 'start', speed: newSpeed });
           }} /><strong>{speed}×</strong></div>
         </div>
+          </article>
+          <article className="viz-card residual-chart">
+            <div className="card-header"><div><div className="card-eyebrow">DIAGNÓSTICO ESTADÍSTICO</div><h3>Análisis de residuos</h3></div>
+              <div className="chart-switch"><button className={residualAxis === 'x' ? 'active' : ''} onClick={() => setResidualAxis('x')}>vs X</button><button className={residualAxis === 'fitted' ? 'active' : ''} onClick={() => setResidualAxis('fitted')}>vs ŷ</button></div>
+            </div>
+            <EChart option={residualOption} onPoint={setSelectedPoint} />
+            <div className="diagnostic-tip">
+              <ChartScatter size={17}/><span>{selected
+                ? 'Punto ' + (selected.index + 1) + ': observado ' + formatValue(selected.y) + ', predicho ' + formatValue(selected.fitted) + ', residuo ' + formatValue(selected.residual)
+                : !hasEvolved ? 'Los residuos aparecerán cuando avance la primera generación.' : 'Selecciona un punto para ver su error (y − ŷ). Busca patrones, sesgos y dispersión desigual.'}</span>
+            </div>
+            <details className="learning-note residual-help">
+              <summary>¿Cómo interpreto los residuos?</summary>
+              <p>Un residuo positivo significa que la observación está por encima de la curva. Uno negativo, por debajo. Si forman una curvatura o un embudo, puede existir un patrón que el modelo no explica. Un MSE pequeño no garantiza la ausencia de esos patrones.</p>
+            </details>
+          </article>
+          <article className="viz-card genotype-card">
+            <div className="card-header"><div><div className="card-eyebrow">INDIVIDUO DESTACADO</div><h3>{hasEvolved ? 'Mejor genotipo' : 'Genotipo por descubrir'}</h3></div><Dna size={19} className="dim-icon"/></div>
+            <p className="equation-name">{modelFormula(active.model, active.degree)}</p>
+            <div className="gene-values">{geneNames(active.model, active.degree).map((g, i) => <div key={g}><span>{g}</span><strong>{formatValue(bestGenes[i], 4)}</strong></div>)}</div>
+            <div className="metrics-strip">
+              <div><span>RMSE</span><strong>{formatValue(metrics?.rmse)}</strong></div>
+              <div><span>MAE</span><strong>{formatValue(metrics?.mae)}</strong></div>
+              <div><span>Válidos</span><strong>{display?.validCount ?? '—'}/{active.populationSize}</strong></div>
+            </div>
+          </article>
+        </div>
+
         <div className="export-actions">
           <span>Descarga los resultados para analizar o documentar el experimento:</span>
           <div><button disabled={!metrics?.valid} onClick={exportResiduals}><Download size={15}/> Exportar residuos CSV</button>

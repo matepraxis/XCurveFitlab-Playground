@@ -6,7 +6,7 @@ test('carga el laboratorio y renderiza tres gráficas', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Observa cómo evoluciona/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Análisis de residuos' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Convergencia del error' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Evolución y control generacional' })).toBeVisible();
   await expect(page.locator('.chart-canvas canvas')).toHaveCount(3);
   await expect(page.locator('.stat-card').first()).toContainText('0');
   expect(failures).toEqual([]);
@@ -62,11 +62,32 @@ test('tema claro y oscuro y paneles visibles en móvil', async ({ page, isMobile
 
 test('exporta residuos e historial sin servidor externo', async ({ page }) => {
   await page.goto('/');
+  // La configuración solo muestra candidatos iniciales; los residuos requieren evolución real.
+  await expect(page.getByRole('button', { name: 'Exportar residuos CSV' })).toBeDisabled();
+  await page.locator('[title="Avanzar una generación"]').click();
   await expect(page.getByRole('button', { name: 'Exportar residuos CSV' })).toBeEnabled();
   const residualDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar residuos CSV' }).click();
-  expect((await residualDownload).suggestedFilename()).toContain('xcurve-residuos-generacion-0.csv');
+  expect((await residualDownload).suggestedFilename()).toContain('xcurve-residuos-generacion-1.csv');
   const experimentDownload = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar experimento JSON' }).click();
   expect((await experimentDownload).suggestedFilename()).toBe('xcurve-experimento.json');
+});
+
+test('aplicar configuración prepara una población inicial sin presentar un ajuste final', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Familia de funciones').selectOption('polynomial');
+  await page.getByRole('button', { name: 'Aplicar configuración' }).click();
+  await expect(page.getByText('Curvas candidatas aleatorias,')).toBeVisible();
+  await expect(page.locator('.stat-card').first()).toContainText('0 /');
+  await expect(page.locator('.stat-card').nth(1)).toContainText('—');
+  await expect(page.getByRole('heading', { name: 'Genotipo por descubrir' })).toBeVisible();
+  await page.waitForTimeout(1200);
+  await expect(page.locator('.stat-card').first()).toContainText('0 /');
+  await expect(page.locator('.evolution-controls')).toHaveCount(1);
+  await expect(page.locator('.convergence-card .evolution-controls [title="Avanzar una generación"]')).toBeVisible();
+  await page.locator('.convergence-card [title="Avanzar una generación"]').click();
+  await expect(page.locator('.stat-card').first()).toContainText('1 /');
+  await expect(page.getByRole('heading', { name: 'Mejor genotipo' })).toBeVisible();
+  await expect(page.locator('.stat-card').nth(1)).not.toContainText('—');
 });
